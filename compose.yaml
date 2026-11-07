@@ -1,0 +1,42 @@
+services:
+  vpn:
+    build: .
+    init: true
+    restart: unless-stopped
+    stop_grace_period: 35s
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/ppp:/dev/ppp:rwm
+    sysctls:
+      net.ipv6.conf.all.disable_ipv6: "1"
+      net.ipv6.conf.default.disable_ipv6: "1"
+    environment:
+      VPN_ENDPOINT: ${VPN_ENDPOINT:?Run bash configure.sh first}
+    tmpfs:
+      - /run
+    secrets:
+      - vpn_user
+      - vpn_password
+      - vpn_psk
+    volumes:
+      - ./resolv.conf:/etc/resolv.conf:ro
+    healthcheck:
+      test: ["CMD", "/usr/local/sbin/vpn-health"]
+      interval: 5s
+      timeout: 3s
+      retries: 6
+      start_period: 65s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "2"
+
+secrets:
+  vpn_user:
+    file: ./secrets/vpn_user
+  vpn_password:
+    file: ./secrets/vpn_password
+  vpn_psk:
+    file: ./secrets/vpn_psk
